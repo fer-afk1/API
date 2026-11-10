@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<!--
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit this template
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GlucoTrack API · Registro de niveles de glucosa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue-900: #071a3d;
+    --blue-800: #0b2a63;
+    --blue-600: #1f5bd8;
+    --blue-400: #4d8dff;
+    --blue-200: #bcd4ff;
+    --red-600: #e11d48;
+    --red-500: #f43f5e;
+    --red-300: #fda4af;
+    --white: #ffffff;
+    --text: #eaf1ff;
+    --muted: #a9bde6;
+    --glass: rgba(255, 255, 255, 0.08);
+    --glass-strong: rgba(255, 255, 255, 0.14);
+    --glass-border: rgba(255, 255, 255, 0.22);
+
+    /* ===== IMÁGENES DE PIXABAY =====
+       Pega aquí la URL de la imagen (clic derecho > copiar dirección de imagen en pixabay.com).
+       Ejemplo: --img-hero: url("https://cdn.pixabay.com/photo/XXXX/XX/XX/XX/XX/nombre-1280.jpg");
+       Si las dejas en "none" se ve el degradado azul/rojo. */
+    --img-hero: none;
+    --img-cta: none;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    color: var(--text);
+    background: var(--blue-900);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* Fondo con degradado y manchas de color */
+  .bg {
+    position: fixed; inset: 0; z-index: -2;
+    background:
+      radial-gradient(900px 600px at 10% 0%, rgba(31, 91, 216, .55), transparent 60%),
+      radial-gradient(700px 500px at 95% 20%, rgba(225, 29, 72, .35), transparent 60%),
+      radial-gradient(800px 600px at 50% 100%, rgba(77, 141, 255, .30), transparent 60%),
+      linear-gradient(160deg, #06143a 0%, #0a2257 55%, #1a0f2e 100%);
+  }
+  .blob {
+    position: fixed; z-index: -1; border-radius: 50%; filter: blur(70px); opacity: .55;
+    animation: float 14s ease-in-out infinite;
+  }
+  .blob.b1 { width: 340px; height: 340px; background: var(--blue-600); top: 12%; left: -90px; }
+  .blob.b2 { width: 300px; height: 300px; background: var(--red-600); bottom: 8%; right: -80px; animation-delay: -6s; }
+  @keyframes float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-30px) } }
+
+  .container { width: min(1120px, 92%); margin: 0 auto; }
+
+  /* ===== Glass base ===== */
+  .glass {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 22px;
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .25), inset 0 1px 0 rgba(255,255,255,.18);
+    transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease, background .3s ease;
+  }
+  .glass.hoverable:hover {
+    transform: translateY(-8px);
+    background: var(--glass-strong);
+    border-color: rgba(255,255,255,.4);
+    box-shadow: 0 22px 50px rgba(0, 0, 0, .35), 0 0 0 1px rgba(255,255,255,.1), 0 14px 40px rgba(244, 63, 94, .28);
+  }
+
+  /* ===== Navbar ===== */
+  nav {
+    position: sticky; top: 14px; z-index: 50; margin-top: 14px;
+  }
+  .nav-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 22px; border-radius: 999px;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; letter-spacing: .3px; }
+  .logo-dot {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--red-500), var(--red-600));
+    display: grid; place-items: center;
+    box-shadow: 0 6px 18px rgba(244,63,94,.5);
+  }
+  .logo-dot svg { width: 18px; height: 18px; fill: #fff; }
+  .nav-links { display: flex; gap: 6px; list-style: none; }
+  .nav-links a {
+    color: var(--muted); text-decoration: none; font-weight: 500; font-size: .95rem;
+    padding: 8px 16px; border-radius: 999px; transition: all .25s ease; display: inline-block;
+  }
+  .nav-links a:hover { color: #fff; background: rgba(255,255,255,.12); box-shadow: 0 6px 18px rgba(31,91,216,.45); }
+
+  /* ===== Botones ===== */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 28px; border-radius: 999px; font-weight: 700; font-size: 1rem;
+    text-decoration: none; border: 1px solid transparent; cursor: pointer;
+    transition: transform .25s ease, box-shadow .25s ease, background .25s ease;
+    font-family: inherit;
+  }
+  .btn-red {
+    color: #fff; background: linear-gradient(135deg, var(--red-500), var(--red-600));
+    box-shadow: 0 10px 26px rgba(225, 29, 72, .4);
+  }
+  .btn-red:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 18px 38px rgba(225, 29, 72, .6); }
+  .btn-glass {
+    color: #fff; background: var(--glass); border-color: var(--glass-border);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+  .btn-glass:hover { transform: translateY(-4px); background: var(--glass-strong); box-shadow: 0 16px 36px rgba(77, 141, 255, .45); }
+
+  /* ===== Hero ===== */
+  .hero { padding: 90px 0 70px; }
+  .hero-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 50px; align-items: center; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 16px; border-radius: 999px; font-size: .85rem; font-weight: 500; color: var(--blue-200);
+    background: rgba(77,141,255,.15); border: 1px solid rgba(77,141,255,.4);
+  }
+  .badge i { width: 8px; height: 8px; border-radius: 50%; background: var(--red-500); box-shadow: 0 0 10px var(--red-500); animation: pulse 1.6s infinite; }
+  @keyframes pulse { 50% { opacity: .35; transform: scale(.8) } }
+  h1 { font-size: clamp(2.3rem, 5vw, 3.8rem); line-height: 1.1; margin: 22px 0 18px; letter-spacing: -1px; }
+  h1 .grad {
+    background: linear-gradient(90deg, var(--blue-400), var(--red-500));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p.lead { font-size: 1.12rem; color: var(--muted); max-width: 540px; }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 32px; }
+
+  /* Tarjeta visual del hero (con imagen opcional) */
+  .hero-visual {
+    position: relative; padding: 26px; min-height: 380px; overflow: hidden;
+    background-image:
+      linear-gradient(160deg, rgba(7,26,61,.55), rgba(7,26,61,.85)),
+      var(--img-hero);
+    background-size: cover; background-position: center;
+  }
+  .reading-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .reading-top small { color: var(--muted); }
+  .status {
+    font-size: .78rem; font-weight: 700; padding: 5px 12px; border-radius: 999px;
+    background: rgba(34,197,94,.18); color: #86efac; border: 1px solid rgba(34,197,94,.45);
+  }
+  .big-number { font-size: 4rem; font-weight: 700; line-height: 1; }
+  .big-number span { font-size: 1.1rem; color: var(--muted); font-weight: 400; margin-left: 6px; }
+  .chart { width: 100%; height: 150px; margin-top: 18px; }
+  .chart path.line { fill: none; stroke: url(#lg); stroke-width: 3.5; stroke-linecap: round; stroke-dasharray: 700; stroke-dashoffset: 700; animation: draw 2.4s .4s forwards ease-out; }
+  .chart path.area { fill: url(#ag); opacity: 0; animation: fade 1s 1.8s forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0 } }
+  @keyframes fade { to { opacity: 1 } }
+  .chips { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  .chip { font-size: .8rem; padding: 6px 12px; border-radius: 12px; background: rgba(255,255,255,.1); border: 1px solid var(--glass-border); }
+  .chip b { color: var(--red-300); }
+
+  /* ===== Secciones ===== */
+  section { padding: 70px 0; }
+  .section-head { text-align: center; margin-bottom: 46px; }
+  .section-head h2 { font-size: clamp(1.8rem, 3.5vw, 2.5rem); letter-spacing: -.5px; }
+  .section-head p { color: var(--muted); max-width: 560px; margin: 10px auto 0; }
+  .eyebrow { color: var(--red-300); font-weight: 700; font-size: .82rem; letter-spacing: 2px; text-transform: uppercase; }
+
+  /* Stats */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .stat { padding: 26px; text-align: center; }
+  .stat strong { display: block; font-size: 2.2rem; background: linear-gradient(90deg, var(--blue-400), var(--red-500)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .stat span { color: var(--muted); font-size: .95rem; }
+
+  /* Features */
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .card { padding: 30px; }
+  .icon {
+    width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; margin-bottom: 18px;
+    background: linear-gradient(135deg, var(--blue-600), var(--blue-400));
+    box-shadow: 0 10px 24px rgba(31,91,216,.5);
+    transition: transform .3s ease, box-shadow .3s ease;
+  }
+  .card:hover .icon { transform: rotate(-8deg) scale(1.1); box-shadow: 0 14px 30px rgba(244,63,94,.55); background: linear-gradient(135deg, var(--red-600), var(--red-500)); }
+  .icon svg { width: 28px; height: 28px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .card h3 { margin-bottom: 8px; font-size: 1.2rem; }
+  .card p { color: var(--muted); font-size: .96rem; }
+
+  /* Rangos */
+  .ranges { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .range { padding: 24px; position: relative; overflow: hidden; }
+  .range::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--c); box-shadow: 0 0 18px var(--c); }
+  .range h4 { margin-bottom: 4px; }
+  .range .val { font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; color: var(--c); font-weight: 500; }
+  .range p { color: var(--muted); font-size: .88rem; margin-top: 6px; }
+  .note { text-align: center; color: var(--muted); font-size: .85rem; margin-top: 20px; }
+
+  /* Endpoints */
+  .endpoints { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+  .ep-list { display: flex; flex-direction: column; gap: 12px; }
+  .ep { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 16px; }
+  .method { font-family: 'JetBrains Mono', monospace; font-size: .78rem; font-weight: 500; padding: 5px 10px; border-radius: 8px; min-width: 66px; text-align: center; }
+  .GET { background: rgba(77,141,255,.2); color: #9cc2ff; border: 1px solid rgba(77,141,255,.5); }
+  .POST { background: rgba(34,197,94,.18); color: #86efac; border: 1px solid rgba(34,197,94,.45); }
+  .PATCH { background: rgba(250,204,21,.16); color: #fde68a; border: 1px solid rgba(250,204,21,.4); }
+  .DELETE { background: rgba(244,63,94,.2); color: var(--red-300); border: 1px solid rgba(244,63,94,.5); }
+  .ep code { font-family: 'JetBrains Mono', monospace; font-size: .9rem; }
+  .ep small { margin-left: auto; color: var(--muted); font-size: .82rem; text-align: right; }
+
+  .code { padding: 0; overflow: hidden; }
+  .code-bar { display: flex; gap: 8px; padding: 14px 18px; border-bottom: 1px solid var(--glass-border); align-items: center; }
+  .code-bar i { width: 12px; height: 12px; border-radius: 50%; background: var(--red-500); }
+  .code-bar i:nth-child(2) { background: #facc15; }
+  .code-bar i:nth-child(3) { background: #22c55e; }
+  .code-bar span { margin-left: 10px; font-size: .82rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  pre { padding: 20px; overflow-x: auto; font-family: 'JetBrains Mono', monospace; font-size: .85rem; line-height: 1.7; color: #dbe7ff; }
+  .k { color: #7fb0ff; } .s { color: #fda4af; } .n { color: #86efac; } .c { color: #6f86b8; }
+
+  /* Pasos */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; counter-reset: s; }
+  .step { padding: 30px; position: relative; }
+  .step::before {
+    counter-increment: s; content: counter(s);
+    position: absolute; top: -18px; left: 26px; width: 38px; height: 38px; border-radius: 50%;
+    display: grid; place-items: center; font-weight: 700;
+    background: linear-gradient(135deg, var(--red-500), var(--red-600)); box-shadow: 0 8px 20px rgba(225,29,72,.5);
+  }
+  .step h3 { margin-bottom: 8px; margin-top: 6px; }
+  .step p { color: var(--muted); font-size: .95rem; }
+
+  /* CTA con imagen opcional */
+  .cta {
+    text-align: center; padding: 60px 30px; overflow: hidden;
+    background-image: linear-gradient(135deg, rgba(31,91,216,.55), rgba(225,29,72,.45)), var(--img-cta);
+    background-size: cover; background-position: center;
+  }
+  .cta h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); margin-bottom: 12px; }
+  .cta p { color: #dce8ff; max-width: 520px; margin: 0 auto 28px; }
+
+  footer { padding: 40px 0 50px; text-align: center; color: var(--muted); font-size: .9rem; }
+  footer a { color: var(--blue-200); text-decoration: none; transition: color .2s; }
+  footer a:hover { color: var(--red-300); }
+
+  /* Scroll reveal */
+  .reveal { opacity: 0; transform: translateY(28px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal.show { opacity: 1; transform: none; }
+  /* Importante: el hover debe poder mover la tarjeta aun después del reveal */
+  .reveal.show.glass.hoverable { transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease, background .3s ease, opacity .7s ease; }
+
+  /* Responsive */
+  @media (max-width: 960px) {
+    .hero-grid, .endpoints { grid-template-columns: 1fr; }
+    .stats, .ranges { grid-template-columns: repeat(2, 1fr); }
+    .cards, .steps { grid-template-columns: 1fr; }
+    .nav-links { display: none; }
+    .steps { gap: 40px; }
+  }
+  @media (max-width: 520px) {
+    .stats, .ranges { grid-template-columns: 1fr; }
+    .ep small { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+    .reveal { opacity: 1; transform: none; }
+    .chart path.line { stroke-dashoffset: 0; }
+    .chart path.area { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg"></div>
+<div class="blob b1"></div>
+<div class="blob b2"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="container">
+    <div class="nav-inner glass">
+      <div class="logo">
+        <div class="logo-dot">
+          <svg viewBox="0 0 24 24"><path d="M12 2.5c-3.6 4.6-6.5 8-6.5 11.6A6.5 6.5 0 0 0 12 20.6a6.5 6.5 0 0 0 6.5-6.5C18.5 10.5 15.6 7.1 12 2.5z"/></svg>
+        </div>
+        GlucoTrack API
+      </div>
+      <ul class="nav-links">
+        <li><a href="#funciones">Funciones</a></li>
+        <li><a href="#rangos">Rangos</a></li>
+        <li><a href="#endpoints">Endpoints</a></li>
+        <li><a href="#pasos">Cómo empezar</a></li>
+      </ul>
+      <a href="#endpoints" class="btn btn-red" style="padding:10px 22px;font-size:.92rem;">Ver documentación</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="container hero-grid">
+    <div>
+      <span class="badge"><i></i> API v1 · En línea</span>
+      <h1>Registra y monitorea la <span class="grad">glucosa</span> de tus afiliados</h1>
+      <p class="lead">Una API segura y sencilla para guardar las mediciones de glucosa de cada usuario afiliado, consultar su historial y detectar valores fuera de rango en tiempo real.</p>
+      <div class="hero-actions">
+        <a href="#endpoints" class="btn btn-red">Explorar endpoints →</a>
+        <a href="#pasos" class="btn btn-glass">Cómo empezar</a>
+      </div>
+    </div>
+
+    <div class="glass hero-visual hoverable">
+      <div class="reading-top">
+        <small>Última lectura · Afiliado #1024</small>
+        <span class="status">NORMAL</span>
+      </div>
+      <div class="big-number">92<span>mg/dL</span></div>
+      <svg class="chart" viewBox="0 0 400 150" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="lg" x1="0" x2="1"><stop offset="0" stop-color="#4d8dff"/><stop offset="1" stop-color="#f43f5e"/></linearGradient>
+          <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4d8dff" stop-opacity=".35"/><stop offset="1" stop-color="#4d8dff" stop-opacity="0"/></linearGradient>
+        </defs>
+        <path class="area" d="M0 110 C40 100 60 60 100 70 S160 120 200 90 S270 30 310 55 S370 80 400 45 L400 150 L0 150Z"/>
+        <path class="line" d="M0 110 C40 100 60 60 100 70 S160 120 200 90 S270 30 310 55 S370 80 400 45"/>
+      </svg>
+      <div class="chips">
+        <span class="chip">Promedio 7 días: <b>96 mg/dL</b></span>
+        <span class="chip">Mediciones hoy: <b>4</b></span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- STATS -->
+<section style="padding-top:20px;">
+  <div class="container stats">
+    <div class="glass hoverable stat reveal"><strong>+10k</strong><span>Lecturas registradas</span></div>
+    <div class="glass hoverable stat reveal"><strong>24/7</strong><span>Disponibilidad</span></div>
+    <div class="glass hoverable stat reveal"><strong>JWT</strong><span>Autenticación segura</span></div>
+    <div class="glass hoverable stat reveal"><strong>&lt;100ms</strong><span>Respuesta promedio</span></div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="funciones">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="eyebrow">Funciones</div>
+      <h2>Todo lo que necesitas para dar seguimiento</h2>
+      <p>Diseñada para clínicas, aseguradoras y programas de salud que atienden a usuarios afiliados.</p>
+    </div>
+    <div class="cards">
+      <article class="glass hoverable card reveal">
+        <div class="icon"><svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></div>
+        <h3>Registro de mediciones</h3>
+        <p>Guarda cada lectura con fecha, hora, valor en mg/dL y el momento de la toma (ayunas, postprandial, antes de dormir).</p>
+      </article>
+      <article class="glass hoverable card reveal">
+        <div class="icon"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></div>
+        <h3>Historial y tendencias</h3>
+        <p>Consulta el historial por afiliado con filtros por rango de fechas y obtén promedios diarios, semanales y mensuales.</p>
+      </article>
+      <article class="glass hoverable card reveal">
+        <div class="icon"><svg viewBox="0 0 24 24"><path d="M12 3l9 16H3L12 3zM12 10v4M12 17h.01"/></svg></div>
+        <h3>Alertas de rango</h3>
+        <p>Clasifica automáticamente cada lectura y marca los valores bajos o elevados para que el equipo de salud actúe a tiempo.</p>
+      </article>
+      <article class="glass hoverable card reveal">
+        <div class="icon"><svg viewBox="0 0 24 24"><path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5l8-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <h3>Datos protegidos</h3>
+        <p>Contraseñas con hash, tokens JWT y acceso por rol para que cada afiliado solo vea su propia información.</p>
+      </article>
+      <article class="glass hoverable card reveal">
+        <div class="icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-6 7-6s7 2.5 7 6M17 11a3 3 0 1 0 0-6M22 20c0-2.6-1.8-4.6-4.5-5.4"/></svg></div>
+        <h3>Gestión de afiliados</h3>
+        <p>Alta, consulta y actualización de usuarios afiliados con su perfil, número de afiliación y médico asignado.</p>
+      </article>
+      <article class="glass hoverable card reveal">
+        <div class="icon"><svg viewBox="0 0 24 24"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg></div>
+        <h3>REST + JSON</h3>
+        <p>Endpoints claros y respuestas en JSON listos para integrarse con apps móviles, web o dispositivos IoT.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- RANGOS -->
+<section id="rangos">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="eyebrow">Clasificación</div>
+      <h2>Rangos de glucosa de referencia</h2>
+      <p>Cada lectura en ayunas se clasifica automáticamente según estos valores.</p>
+    </div>
+    <div class="ranges">
+      <div class="glass hoverable range reveal" style="--c:#fb7185;">
+        <h4>Hipoglucemia</h4><div class="val">&lt; 70 mg/dL</div><p>Nivel bajo. Requiere atención inmediata.</p>
+      </div>
+      <div class="glass hoverable range reveal" style="--c:#4ade80;">
+        <h4>Normal</h4><div class="val">70 – 99 mg/dL</div><p>Rango saludable en ayunas.</p>
+      </div>
+      <div class="glass hoverable range reveal" style="--c:#fbbf24;">
+        <h4>Prediabetes</h4><div class="val">100 – 125 mg/dL</div><p>Nivel elevado. Conviene vigilar.</p>
+      </div>
+      <div class="glass hoverable range reveal" style="--c:#f43f5e;">
+        <h4>Diabetes</h4><div class="val">≥ 126 mg/dL</div><p>Nivel alto. Debe valorarlo un médico.</p>
+      </div>
+    </div>
+    <p class="note">Valores orientativos en ayunas. No sustituyen un diagnóstico médico.</p>
+  </div>
+</section>
+
+<!-- ENDPOINTS -->
+<section id="endpoints">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="eyebrow">Documentación</div>
+      <h2>Endpoints principales</h2>
+      <p>Base URL: <code style="font-family:'JetBrains Mono',monospace;color:var(--blue-200);">https://tu-api.com/api/v1</code></p>
+    </div>
+    <div class="endpoints">
+      <div class="ep-list">
+        <div class="glass hoverable ep reveal"><span class="method POST">POST</span><code>/auth/login</code><small>Iniciar sesión</small></div>
+        <div class="glass hoverable ep reveal"><span class="method POST">POST</span><code>/afiliados</code><small>Registrar afiliado</small></div>
+        <div class="glass hoverable ep reveal"><span class="method GET">GET</span><code>/afiliados/:id</code><small>Perfil del afiliado</small></div>
+        <div class="glass hoverable ep reveal"><span class="method POST">POST</span><code>/glucosa</code><small>Registrar medición</small></div>
+        <div class="glass hoverable ep reveal"><span class="method GET">GET</span><code>/afiliados/:id/glucosa</code><small>Historial</small></div>
+        <div class="glass hoverable ep reveal"><span class="method PATCH">PATCH</span><code>/glucosa/:id</code><small>Corregir medición</small></div>
+        <div class="glass hoverable ep reveal"><span class="method DELETE">DELETE</span><code>/glucosa/:id</code><small>Eliminar medición</small></div>
+      </div>
+
+      <div class="glass code reveal">
+        <div class="code-bar"><i></i><i></i><i></i><span>POST /glucosa</span></div>
+<pre><span class="c">// Petición</span>
+{
+  <span class="k">"afiliadoId"</span>: <span class="n">1024</span>,
+  <span class="k">"valor"</span>: <span class="n">92</span>,
+  <span class="k">"unidad"</span>: <span class="s">"mg/dL"</span>,
+  <span class="k">"momento"</span>: <span class="s">"ayunas"</span>,
+  <span class="k">"fecha"</span>: <span class="s">"2026-10-26T07:30:00Z"</span>
+}
+
+<span class="c">// Respuesta 201</span>
+{
+  <span class="k">"id"</span>: <span class="n">5871</span>,
+  <span class="k">"clasificacion"</span>: <span class="s">"normal"</span>,
+  <span class="k">"alerta"</span>: <span class="n">false</span>
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PASOS -->
+<section id="pasos">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="eyebrow">Empieza ya</div>
+      <h2>Listo en tres pasos</h2>
+    </div>
+    <div class="steps">
+      <div class="glass hoverable step reveal">
+        <h3>Registra al afiliado</h3>
+        <p>Crea el perfil del usuario con su número de afiliación y obtén sus credenciales de acceso.</p>
+      </div>
+      <div class="glass hoverable step reveal">
+        <h3>Inicia sesión</h3>
+        <p>Haz login y recibe un token JWT para enviarlo en el header <code style="font-family:'JetBrains Mono',monospace;">Authorization</code>.</p>
+      </div>
+      <div class="glass hoverable step reveal">
+        <h3>Envía mediciones</h3>
+        <p>Registra cada lectura de glucosa y consulta el historial y las alertas cuando lo necesites.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section style="padding-top:30px;">
+  <div class="container">
+    <div class="glass hoverable cta reveal">
+      <h2>Cuida la salud de tus afiliados con datos</h2>
+      <p>Integra GlucoTrack API en tu aplicación y empieza a registrar mediciones hoy mismo.</p>
+      <a href="#endpoints" class="btn btn-red">Ir a la documentación</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>© 2026 GlucoTrack API · Proyecto académico · <a href="#">Aviso de privacidad</a> · <a href="#">Contacto</a></p>
+  </div>
+</footer>
+
+<script>
+  // Animación de aparición al hacer scroll
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('show'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body>
+</html>
